@@ -1,0 +1,17 @@
+#
+# Excludes files and folders from the Docker context
+#
+# Docs: https://docs.docker.com/reference/dockerfile/#dockerignore-file
+#
+.devcontainer/
+.git/
+.github/
+.vscode/
+LICENSE
+
+# .git files
+.gitattributes
+.gitignore
+
+# Ignore all markdown files
+*.md
