@@ -232,7 +232,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends zsh fontconfig 
     apt-get clean autoclean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-
 # Setup zsh for the texlive user by copying the root configuration
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN cp -r /root/.oh-my-zsh /home/texlive/.oh-my-zsh && \
@@ -248,7 +247,7 @@ ENV SHELL=/bin/zsh
 
 RUN apt-get autoremove -y && \
     apt-get clean autoclean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # +-----------------------------+
 # | Set Locale + Timezone       |
