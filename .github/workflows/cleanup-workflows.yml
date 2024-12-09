@@ -4,7 +4,7 @@
 # Copyright 2021 Ching Chow, Jens A. Koch.
 # SPDX-License-Identifier: BSL-1.0
 # Origin: https://github.community/t/delete-old-workflow-results/16152/42
-# This file is part of https://github.com/jakoch/csgo-cli
+# This file is part of https://github.com/jakoch/latex-devbox
 #
 
 name: Clean Workflow Runs
