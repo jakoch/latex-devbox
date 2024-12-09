@@ -13,7 +13,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     CURL_OPTIONS_BAR="--progress-bar"
 
 WORKDIR /tmp
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl jq && \
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl jq && \
     # +-------------------------------------+
     # | OpenJDK                             |
     # +-------------------------------------+
@@ -223,7 +226,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends zsh fontconfig 
     git clone --depth=1 https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-completions && \
     git clone --depth=1 https://github.com/zsh-users/zsh-history-substring-search ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-history-substring-search && \
     sed -i "s/plugins=(git)/plugins=(git zsh-completions zsh-autosuggestions zsh-history-substring-search)/" /root/.zshrc && \
-    sed -i "s/ZSH_THEME=\"agnoster\"/ZSH_THEME=\"robbyrussell\"/" /root/.zshrc
+    sed -i "s/ZSH_THEME=\"agnoster\"/ZSH_THEME=\"robbyrussell\"/" /root/.zshrc && \
+	# Cleanup
+	apt-get autoremove -y && \
+    apt-get clean autoclean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 
 # Setup zsh for the texlive user by copying the root configuration
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
