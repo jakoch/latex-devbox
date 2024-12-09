@@ -53,7 +53,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 # | BASE IMAGE                  |        See https://hub.docker.com/_/debian
 # +-----------------------------+
 
-FROM debian:trixie-slim AS tex-devbox-base
+FROM debian:trixie-slim AS latex-devbox-final
 
 ARG USERNAME=texlive
 ARG USER_UID=1000
@@ -90,10 +90,6 @@ RUN mkdir -p /etc/sudoers.d && \
 #                                                      888
 #                                                 Y8b d88P
 #                                                  "Y88P"
-
-# +-----------------------------+
-# | PRE-REQUISITE/INIT PACKAGES |
-# +-----------------------------+
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -207,10 +203,7 @@ COPY --from=builder /usr/local/bin/tex-fmt /usr/local/bin/tex-fmt
 #   d88P       Y88b  d88P 888    888
 #  d8888888888  "Y8888P"  888    888
 #
-
-# +-----------------------------+
-# | ZSH                         |
-# +-----------------------------+
+#
 # Setup zsh, ohmyzsh, fontconfig, powerline fonts.
 # Setup zsh plugins: autosuggestions, autocompletions, history search.
 
