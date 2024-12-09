@@ -215,7 +215,7 @@ ENV TERM=xterm-256color \
 # Setup zsh for the root user
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update && apt-get install -y --no-install-recommends zsh fontconfig && \
-    curl $CURL_OPTIONS_BAR -L http://ftp.de.debian.org/debian/pool/main/p/powerline/fonts-powerline_2.8.3-6_all.deb && \
+    curl $CURL_OPTIONS_BAR -o fonts-powerline_2.8.3-6_all.deb -L http://ftp.de.debian.org/debian/pool/main/p/powerline/fonts-powerline_2.8.3-6_all.deb && \
     dpkg -i fonts-powerline_2.8.3-6_all.deb && \
     rm fonts-powerline_2.8.3-6_all.deb && \
     curl $CURL_OPTIONS_BAR -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh && \
