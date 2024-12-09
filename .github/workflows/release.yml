@@ -1,0 +1,136 @@
+#
+# SPDX-FileCopyrightText: 2023,2024 Jens A. Koch
+# SPDX-License-Identifier: MIT
+# This file is part of jakoch/latex-devbox.
+#
+
+name: Release
+
+on:
+  # You can manually run this workflow.
+  workflow_dispatch:
+  # This workflow runs on pushing a semantic versionized tag (e.g. v1.0.0).
+  # This workflow does not run when pushing to the main branch.
+  push:
+    #branches:
+    #  - main
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  # This workflow runs on schedule: every Sunday at 1 am.
+  schedule:
+    - cron: "0 1 * * 0"
+
+env:
+  DOCKERHUB_IMAGE: ${{ github.repository }}
+  GHCR_IMAGE: ghcr.io/${{ github.repository }}
+
+# ---------------------------------------------------------------------------------------
+
+  build:
+
+# ---------------------------------------------------------------------------------------
+
+    name: "Build Container"
+    # https://github.com/actions/runner-images
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          #- { platform: "linux/amd64", debian_codename: "bookworm", debian_version: "12"}
+          - { platform: "linux/amd64", debian_codename: "trixie", debian_version: "13" }
+
+    steps:
+      - name: ✂️ Free Disk Space
+        uses: jlumbroso/free-disk-space@v1.3.0 # https://github.com/jlumbroso/free-disk-space
+        with:
+          tool-cache: true
+          docker-images: false
+
+      - name: 🤘 Checkout Code
+        uses: actions/checkout@v4 # https://github.com/actions/checkout
+
+      - name: 🔍 Run hadolint
+        uses: hadolint/hadolint-action@v3.1.0 # https://github.com/hadolint/hadolint-action
+        with:
+          dockerfile: .devcontainer/debian/${{ matrix.config.debian_codename }}/Dockerfile
+          no-fail: true
+
+      - name: 🔒 Login to Github Container Registry (GHCR)
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3 # https://github.com/docker/login-action
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔽 Setup QEMU
+        uses: docker/setup-qemu-action@v3 # https://github.com/docker/setup-qemu-action
+        with:
+          platforms: ${{ matrix.config.platform }}
+
+      - name: 🔽 Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # latex-devbox:{debian_codename}-{{date}}                # only on scheduled builds
+      # latex-devbox:{debian_codename}-{{version}}             # only on git tag
+      # latex-devbox:{debian_codename}-{{major}}.{{minor}}     # only on git tag
+      # latex-devbox:{debian_codename}-{{date}}-sha-{{sha}}    # only on push, not when tagging
+      # latex-devbox:{debian_codename}-latest                  # always
+      - name: ✏ Setup Docker Metadata
+        id: metadata-base
+        uses: docker/metadata-action@v5 # https://github.com/docker/metadata-action
+        with:
+          images: |
+            ${{ env.GHCR_IMAGE }}
+          flavor: |
+            latest=auto
+            prefix=${{ matrix.config.debian_codename }}-
+          tags: |
+            type=schedule,pattern={{ date 'YYYYMMDD' }}
+            type=semver,pattern={{ version }}
+            type=semver,pattern={{ major }}.{{ minor }}
+            type=raw,value={{ date 'YYYYMMDD' }}-sha-{{ sha }},enabled=${{ github.event_name == 'push' }}
+            type=raw,value=latest
+
+     - name: ✏ Create info.json
+       run: |
+         jq -n --arg version "${{ github.ref_name }}" \
+               --arg commit "${{ github.sha }}" \
+               --arg date "$(date -u +%F)" \
+               '{ version: $version, commit: $commit, date: $date }' > info-${{ matrix.config.debian_codename }}.json
+
+      # Build Image -> Stage: latex-devbox-final
+      - name: 📦 🚀 Build and Push
+        id: build-base
+        uses: docker/build-push-action@v6 # https://github.com/docker/build-push-action
+        with:
+          context: .
+          file: .devcontainer/debian/${{ matrix.config.debian_codename }}/Dockerfile
+          target: latex-devbox-final
+          platforms: ${{ matrix.config.platform }}
+          tags: ${{ steps.metadata-base.outputs.tags }}
+          labels: ${{ steps.metadata-base.outputs.labels }}
+          push: false
+          load: true
+
+      - name: List Docker Images
+        run: |
+          docker images --format "table {{.ID}}\t{{.Repository}}\t{{.Tag}}\t{{.Size}}"
+          docker images --digests
+
+      - name: Push all images and all tags
+        run: |
+          docker push --all-tags ${{ env.GHCR_IMAGE }}
+
+      - name: 📦 Provide the version info and info.json as a release asset
+        uses: actions/upload-artifact@v4 # https://github.com/actions/upload-artifact
+        with:
+          name: version-info-${{ matrix.config.debian_codename }}
+          path: |
+            info-${{ matrix.config.debian_codename }}.json
