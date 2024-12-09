@@ -1,6 +1,6 @@
 // https://containers.dev/implementors/json_reference/
 {
-    "name": "laxtex-devbox based on Debian 13 (trixie)",
+    "name": "Latex DevBox",
     "build": {
         // The repository contains one image:
         // - "./debian/trixie/Dockerfile"
