@@ -221,7 +221,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends zsh fontconfig 
     curl $CURL_OPTIONS_BAR -o fonts-powerline_2.8.3-6_all.deb -L http://ftp.de.debian.org/debian/pool/main/p/powerline/fonts-powerline_2.8.3-6_all.deb && \
     dpkg -i fonts-powerline_2.8.3-6_all.deb && \
     rm fonts-powerline_2.8.3-6_all.deb && \
-    curl $CURL_OPTIONS_BAR -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh && \
+    curl $CURL_OPTIONS_BAR -fsSL https://install.ohmyz.sh | sh && \
     git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions && \
     git clone --depth=1 https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-completions && \
     git clone --depth=1 https://github.com/zsh-users/zsh-history-substring-search ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-history-substring-search && \
