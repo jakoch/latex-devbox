@@ -145,10 +145,6 @@ jobs:
     runs-on: ubuntu-24.04
     needs: build
 
-    permissions:
-      contents: read
-      packages: write
-
     strategy:
       fail-fast: false
       matrix:
