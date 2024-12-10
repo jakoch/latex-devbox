@@ -164,6 +164,10 @@ jobs:
       - name: 🤘 Checkout Code
         uses: actions/checkout@v4
 
+      - name: 🔽 Pull Docker Image from GitHub Container Registry
+        run: |
+          docker pull ${{ env.GHCR_IMAGE }}:${{ matrix.config.debian_codename }}-latest
+
       - name: 📄 ✅ Test rendering a LaTeX document
         run: |
           docker run --rm \
@@ -172,11 +176,11 @@ jobs:
           ${{ env.GHCR_IMAGE }}:${{ matrix.config.debian_codename }}-latest \
           pdflatex -interaction=nonstopmode -halt-on-error -output-directory=/workdir /workdir/demo.tex
 
-      - name: List Files in latex-demo
+      - name: 📂 List Files in latex-demo
         run: |
           ls -l latex-demo/
 
-      - name: Upload PDF Output
+      - name: 🔼 Upload PDF Output
         uses: actions/upload-artifact@v3
         with:
           name: latex-output
