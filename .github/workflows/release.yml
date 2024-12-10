@@ -139,6 +139,45 @@ jobs:
           path: |
             info-${{ matrix.config.debian_codename }}.json
 
+  test-image:
+
+    name: Test LaTeX Document
+    runs-on: ubuntu-latest
+    needs: build
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          #- { platform: "linux/amd64", debian_codename: "bookworm", debian_version: "12"}
+          - {
+              platform: "linux/amd64",
+              debian_codename: "trixie",
+              debian_version: "13"
+            }
+
+    steps:
+      - name: 🤘 Checkout Code
+        uses: actions/checkout@v4
+
       - name: 📄 ✅ Test rendering a LaTeX document
         run: |
-          docker run --rm -v $(pwd)/latex-demo:/workdir ${{ env.GHCR_IMAGE }}:${{ matrix.config.debian_codename }}-latest pdflatex -interaction=nonstopmode -halt-on-error -output-directory=/workdir /workdir/demo.tex
+          docker run --rm \
+          --user $(id -u):$(id -g) \
+          -v $(pwd)/latex-demo:/workdir \
+          ${{ env.GHCR_IMAGE }}:${{ matrix.config.debian_codename }}-latest \
+          pdflatex -interaction=nonstopmode -halt-on-error -output-directory=/workdir /workdir/demo.tex
+
+      - name: List Files in latex-demo
+        run: |
+          ls -l latex-demo/
+
+      - name: Upload PDF Output
+        uses: actions/upload-artifact@v3
+        with:
+          name: latex-output
+          path: latex-demo/
