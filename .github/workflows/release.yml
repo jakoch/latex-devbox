@@ -141,4 +141,4 @@ jobs:
 
       - name: 📄 ✅ Test rendering a LaTeX document
         run: |
-          docker run --rm -v $(pwd)/latex-demo:/workdir ${{ env.GHCR_IMAGE }}/${{ matrix.config.debian_codename }}-latest pdflatex -interaction=nonstopmode -halt-on-error -output-directory=/workdir /workdir/demo.tex
+          docker run --rm -v $(pwd)/latex-demo:/workdir ${{ env.GHCR_IMAGE }}:${{ matrix.config.debian_codename }}-latest pdflatex -interaction=nonstopmode -halt-on-error -output-directory=/workdir /workdir/demo.tex
