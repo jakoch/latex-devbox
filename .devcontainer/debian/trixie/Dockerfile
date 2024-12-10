@@ -218,14 +218,18 @@ ENV TERM=xterm-256color \
 # Setup zsh for the root user
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update && apt-get install -y --no-install-recommends zsh fontconfig && \
-    curl $CURL_OPTIONS_BAR -o fonts-powerline_2.8.3-6_all.deb -L http://ftp.de.debian.org/debian/pool/main/p/powerline/fonts-powerline_2.8.3-6_all.deb && \
-    dpkg -i fonts-powerline_2.8.3-6_all.deb && \
-    rm fonts-powerline_2.8.3-6_all.deb && \
+    # Download and install fonts-powerline
+    curl $CURL_OPTIONS_BAR -o fonts-powerline.deb -L http://ftp.de.debian.org/debian/pool/main/p/powerline/fonts-powerline_2.8.3-6_all.deb && \
+    dpkg -i fonts-powerline.deb && \
+    rm fonts-powerline.deb && \
+	# Install Oh My Zsh
     curl $CURL_OPTIONS_BAR -fsSL https://install.ohmyz.sh | sh && \
+	# Add Zsh plugins
     git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions && \
     git clone --depth=1 https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-completions && \
     git clone --depth=1 https://github.com/zsh-users/zsh-history-substring-search ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-history-substring-search && \
-    sed -i "s/plugins=(git)/plugins=(git zsh-completions zsh-autosuggestions zsh-history-substring-search)/" /root/.zshrc && \
+    # Update .zshrc
+	sed -i "s/plugins=(git)/plugins=(git zsh-completions zsh-autosuggestions zsh-history-substring-search)/" /root/.zshrc && \
     sed -i "s/ZSH_THEME=\"agnoster\"/ZSH_THEME=\"robbyrussell\"/" /root/.zshrc && \
 	# Cleanup
 	apt-get autoremove -y && \
@@ -239,6 +243,7 @@ RUN cp -r /root/.oh-my-zsh /home/texlive/.oh-my-zsh && \
     sed -i "s/\/root/\/home\/texlive/g" /home/texlive/.zshrc && \
     chown -R texlive:texlive /home/texlive/.oh-my-zsh /home/texlive/.zshrc
 
+# Set the default shell to zsh after it is installed
 ENV SHELL=/bin/zsh
 
 # +-----------------------------+
