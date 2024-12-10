@@ -123,12 +123,12 @@ jobs:
           push: false
           load: true
 
-      - name: List Docker Images
+      - name: 🐳 List Docker Images
         run: |
           docker images --format "table {{.ID}}\t{{.Repository}}\t{{.Tag}}\t{{.Size}}"
           docker images --digests
 
-      - name: Push all images and all tags
+      - name: 🔼 Push all images and all tags
         run: |
           docker push --all-tags ${{ env.GHCR_IMAGE }}
 
@@ -138,3 +138,7 @@ jobs:
           name: version-info-${{ matrix.config.debian_codename }}
           path: |
             info-${{ matrix.config.debian_codename }}.json
+
+      - name: 📄 ✅ Test rendering a LaTeX document
+        run: |
+          docker run --rm -v $(pwd)/latex-demo:/workdir ${{ env.GHCR_IMAGE }} pdflatex -interaction=nonstopmode -halt-on-error -output-directory=/workdir /workdir/demo.tex
