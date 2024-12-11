@@ -15,7 +15,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
 WORKDIR /tmp
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN echo "Builder Stage" && \
+    apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl jq && \
     # +-------------------------------------+
     # | OpenJDK                             |
@@ -68,7 +69,8 @@ ARG USER_GECOS=TeXLive
 # +-----------------------------+
 
 # Create a non-root user
-RUN groupadd --gid $USER_GID $USERNAME && \
+RUN echo "Create a non-root user" && \
+    groupadd --gid $USER_GID $USERNAME && \
     useradd \
     -s /bin/bash \
     --uid $USER_UID \
@@ -77,7 +79,8 @@ RUN groupadd --gid $USER_GID $USERNAME && \
     -m $USERNAME
 
 # Add sudo support for non-root user
-RUN mkdir -p /etc/sudoers.d && \
+RUN echo "Add sudo support for non-root user" && \
+    mkdir -p /etc/sudoers.d && \
     echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME && \
     chmod 0440 /etc/sudoers.d/$USERNAME
 
@@ -98,8 +101,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     # CURL_OPTIONS="--silent --show-error --retry 5 --connect-timeout 20 --max-time 10"
     CURL_OPTIONS_BAR="--progress-bar"
 
-# avoid debconf delaying package configuration, since apt-utils is not installed
-RUN apt-get update && apt-get install -y --no-install-recommends apt-utils dialog 2>&1 && \
+RUN echo "Packages" && \
     apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     # sudo
@@ -166,10 +168,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends apt-utils dialo
 	# Cleanup
 	apt-get autoremove -y && \
     apt-get clean autoclean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# Install perl modules for latexindent
-RUN cpanm YAML::Tiny File::HomeDir
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
+    # Install perl modules for latexindent via cpanm
+    cpanm YAML::Tiny File::HomeDir
 
 # +-------------------------------------+
 # | Java via OpenJDK21                  |
@@ -177,7 +178,8 @@ RUN cpanm YAML::Tiny File::HomeDir
 
 COPY --from=builder /usr/local/jdk-21 /usr/local/jdk-21
 
-RUN ln -s /usr/local/jdk-21/bin/java /usr/bin/java && \
+RUN echo "OpenJDK Symlink" && \
+    ln -s /usr/local/jdk-21/bin/java /usr/bin/java && \
     ln -s /usr/local/jdk-21/bin/javac /usr/bin/javac && \
     ln -s /usr/local/jdk-21/bin/jshell /usr/bin/jshell
 
@@ -217,7 +219,8 @@ ENV TERM=xterm-256color \
 
 # Setup zsh for the root user
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN apt-get update && apt-get install -y --no-install-recommends zsh fontconfig && \
+RUN echo "ZSH" && \
+    apt-get update && apt-get install -y --no-install-recommends zsh fontconfig && \
     # Download and install fonts-powerline
     curl $CURL_OPTIONS_BAR -o fonts-powerline.deb -L http://ftp.de.debian.org/debian/pool/main/p/powerline/fonts-powerline_2.8.3-6_all.deb && \
     dpkg -i fonts-powerline.deb && \
@@ -238,7 +241,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends zsh fontconfig 
 
 # Setup zsh for the texlive user by copying the root configuration
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN cp -r /root/.oh-my-zsh /home/texlive/.oh-my-zsh && \
+RUN echo "ZSH config" && \
+    cp -r /root/.oh-my-zsh /home/texlive/.oh-my-zsh && \
     cp /root/.zshrc /home/texlive/.zshrc && \
     sed -i "s/\/root/\/home\/texlive/g" /home/texlive/.zshrc && \
     chown -R texlive:texlive /home/texlive/.oh-my-zsh /home/texlive/.zshrc
@@ -250,7 +254,8 @@ ENV SHELL=/bin/zsh
 # | CLEANUP                     |
 # +-----------------------------+
 
-RUN apt-get autoremove -y && \
+RUN echo "Cleanup" && \
+    apt-get autoremove -y && \
     apt-get clean autoclean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -260,7 +265,8 @@ RUN apt-get autoremove -y && \
 
 ENV TZ=Europe/Berlin
 
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+RUN echo "Locale & Timezone" && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
     dpkg-reconfigure -f noninteractive tzdata && \
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
