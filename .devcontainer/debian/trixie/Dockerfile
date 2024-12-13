@@ -64,6 +64,23 @@ ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 ARG USER_GECOS=TeXLive
 
+
+# +-----------------------------+
+# | METADATA                    |
+# +-----------------------------+
+# Standardized Docker Image Labels
+# https://github.com/opencontainers/image-spec/blob/main/annotations.md
+
+LABEL \
+    maintainer="Jens A. Koch <jakoch@web.de>" \
+    org.opencontainers.image.created="$(date --utc --iso-8601=seconds)" \
+    org.opencontainers.image.authors='Jens A. Koch <jakoch@web.de>' \
+    org.opencontainers.image.url='https://ghcr.io/jakoch/latex-devbox' \
+    org.opencontainers.image.source='https://github.com/jakoch/latex-devbox'\
+    org.opencontainers.image.title='ghcr.io/jakoch/cpp-devbox'\
+    org.opencontainers.image.description="A Docker-based devcontainer for documentation development. Based on Debian with LaTeX (TexLive+TexLS), Pandoc, AsciiDoc, and Docbook." \
+    org.opencontainers.image.licenses=MIT
+
 # +-----------------------------+
 # | Setup User                  |
 # +-----------------------------+
@@ -283,4 +300,6 @@ ENV DEBIAN_FRONTEND=dialog
 
 # setup tlmgr for user
 USER $USERNAME
-RUN tlmgr init-usertree
+RUN tlmgr init-usertree && \
+    # pre-generate the font names database
+    luaotfload-tool --update --force
