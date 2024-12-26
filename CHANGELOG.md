@@ -11,7 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - "It was a bright day in April, and the clocks were striking thirteen." - 1984
 
-## [0.0.1] - 2024-12-xx
+## [0.0.1] - 2024-12-26
+
+- Initial Release
 
 
 <!-- Section for Reference Links -->
