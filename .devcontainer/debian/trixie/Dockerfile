@@ -241,7 +241,8 @@ RUN echo "ZSH" && \
     apt-get update && apt-get install --no-install-recommends --assume-yes \
     zsh fontconfig && \
     # Download and install fonts-powerline
-    # An installation via apt-get is not possible, because the package is only available in unstable(sid).
+    # An installation via apt-get is not possible for trixie,
+	# because the package is only available in unstable(sid).
     # https://packages.debian.org/sid/fonts-powerline
 	# https://api.ftp-master.debian.org/madison?package=fonts-powerline&table=debian
     FONTS_POWERLINE_VERSION=$(curl -s 'https://api.ftp-master.debian.org/madison?package=fonts-powerline&table=debian&s=unstable&f=json' | jq -r '.[0]["fonts-powerline"].unstable | keys[0]'); echo "Latest Version: \"$FONTS_POWERLINE_VERSION\"" && \
