@@ -240,8 +240,10 @@ RUN echo "ZSH" && \
     # Install fonts
     apt-get update && apt-get install --no-install-recommends --assume-yes \
     zsh fontconfig && \
-    # Download and install fonts-powerline directly
-	# (installing via apt-get is not working on unstable/trixie)
+    # Download and install fonts-powerline
+    # An installation via apt-get is not possible, because the package is only available in unstable(sid).
+    # https://packages.debian.org/sid/fonts-powerline
+	# https://api.ftp-master.debian.org/madison?package=fonts-powerline&table=debian
     FONTS_POWERLINE_VERSION=$(curl -s 'https://api.ftp-master.debian.org/madison?package=fonts-powerline&table=debian&s=unstable&f=json' | jq -r '.[0]["fonts-powerline"].unstable | keys[0]'); echo "Latest Version: \"$FONTS_POWERLINE_VERSION\"" && \
     FONTS_POWERLINE_URL="http://ftp.de.debian.org/debian/pool/main/p/powerline/fonts-powerline_${FONTS_POWERLINE_VERSION}_all.deb" && \
     curl -o fonts-powerline.deb -L ${FONTS_POWERLINE_URL} && \
