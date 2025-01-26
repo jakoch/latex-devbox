@@ -13,13 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.2] - 2025-01-26
 
-**Changed**
+### Changed
+
 - fixed installation of "fonts-powerline"
 
 ## [0.0.1] - 2024-12-26
 
 - Initial Release
-
 
 <!-- Section for Reference Links -->
 
