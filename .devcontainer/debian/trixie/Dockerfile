@@ -149,8 +149,8 @@ RUN echo "Packages" && \
     # locale + timezone
     locales \
     tzdata \
-    # shell
-    zsh \
+    # shell (installation below)
+    #zsh \
     # perl
     perl \
     cpanminus \
@@ -237,13 +237,18 @@ ENV TERM=xterm-256color \
 # Setup zsh for the root user
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN echo "ZSH" && \
-    apt-get update && apt-get install -y --no-install-recommends zsh fontconfig && \
-    # Download and install fonts-powerline
-    curl $CURL_OPTIONS_BAR -o fonts-powerline.deb -L http://ftp.de.debian.org/debian/pool/main/p/powerline/fonts-powerline_2.8.3-6_all.deb && \
+    # Install fonts
+    apt-get update && apt-get install --no-install-recommends --assume-yes \
+    zsh fontconfig && \
+    # Download and install fonts-powerline directly
+	# (installing via apt-get is not working on unstable/trixie)
+    FONTS_POWERLINE_VERSION=$(curl -s 'https://api.ftp-master.debian.org/madison?package=fonts-powerline&table=debian&s=unstable&f=json' | jq -r '.[0]["fonts-powerline"].unstable | keys[0]'); echo "Latest Version: \"$FONTS_POWERLINE_VERSION\"" && \
+    FONTS_POWERLINE_URL="http://ftp.de.debian.org/debian/pool/main/p/powerline/fonts-powerline_${FONTS_POWERLINE_VERSION}_all.deb" && \
+    curl -o fonts-powerline.deb -L ${FONTS_POWERLINE_URL} && \
     dpkg -i fonts-powerline.deb && \
     rm fonts-powerline.deb && \
-	# Install Oh My Zsh
-    curl $CURL_OPTIONS_BAR -fsSL https://install.ohmyz.sh | sh && \
+    # Install Oh My Zsh
+    curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh && \
 	# Add Zsh plugins
     git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions && \
     git clone --depth=1 https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-completions && \
@@ -251,6 +256,7 @@ RUN echo "ZSH" && \
     # Update .zshrc
 	sed -i "s/plugins=(git)/plugins=(git zsh-completions zsh-autosuggestions zsh-history-substring-search)/" /root/.zshrc && \
     sed -i "s/ZSH_THEME=\"agnoster\"/ZSH_THEME=\"robbyrussell\"/" /root/.zshrc && \
+    sed -i "s/# DISABLE_AUTO_UPDATE=\"true\"/DISABLE_AUTO_UPDATE=\"true\"/" /root/.zshrc && \
 	# Cleanup
 	apt-get autoremove -y && \
     apt-get clean autoclean && \
