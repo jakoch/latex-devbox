@@ -1,9 +1,8 @@
 #
-# .github/workflows/cleanup-workflows.yml
-#
-# SPDX-FileCopyrightText: 2021 Ching Chow, Jens A. Koch.
+# SPDX-FileCopyrightText: 2021 Ching Chow.
+# SPDX-FileCopyrightText: 2021-2025 Jens A. Koch.
 # SPDX-License-Identifier: BSL-1.0
-# Origin: https://github.community/t/delete-old-workflow-results/16152/42
+#
 # This file is part of https://github.com/jakoch/latex-devbox
 #
 
@@ -12,14 +11,17 @@ name: Clean Workflow Runs
 on:
   # You can manually run this workflow.
   workflow_dispatch:
-  # This workflow runs at 00:00 daily.
+  # This workflow runs at 20:04 daily.
+  # The irregular time is used to avoid Github high load times.
   schedule:
-    - cron: "0 0 * * *" # GMT
+    - cron: "04 20 * * *" # GMT
 
 jobs:
   cleanup-workflows:
     name: "Clean Workflows"
     runs-on: ubuntu-24.04
+    permissions:
+      actions: write      
     timeout-minutes: 10
 
     steps:
