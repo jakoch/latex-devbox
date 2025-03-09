@@ -123,14 +123,14 @@ jobs:
           push: false
           load: true
 
+      - name: 🔼 Push all images and all tags
+        run: |
+          docker push --all-tags ${{ env.GHCR_IMAGE }}
+
       - name: 🐳 List Docker Images
         run: |
           docker images --format "table {{.ID}}\t{{.Repository}}\t{{.Tag}}\t{{.Size}}"
           docker images --digests
-
-      - name: 🔼 Push all images and all tags
-        run: |
-          docker push --all-tags ${{ env.GHCR_IMAGE }}
 
       - name: 📦 Provide the version info and info.json as a release asset
         uses: actions/upload-artifact@v4 # https://github.com/actions/upload-artifact
@@ -138,6 +138,34 @@ jobs:
           name: version-info-${{ matrix.config.debian_codename }}
           path: |
             info-${{ matrix.config.debian_codename }}.json
+
+      - name: 🛡️🔍 Scan Image for Vulnerabilities using Trivy
+        uses: aquasecurity/trivy-action@master # https://github.com/aquasecurity/trivy-action
+        with:
+            image-ref: '${{ env.GHCR_IMAGE }}:${{ matrix.config.debian_codename }}-latest'
+            format: 'sarif'
+            output: 'trivy-results.sarif'
+            severity: 'CRITICAL,HIGH'
+            ignore-unfixed: true
+            skip-files: /etc/ssh/ssh_host_rsa_key
+        # Notes for the skips:
+        # - skip-files: /etc/ssh/ssh_host_rsa_key
+        #   The file is skipped, because its reported as "Asymmetric Private Key" alert.
+        #   This is a false positive, because the file is a private key, which is intended to be there.
+
+      - name: 🛡️🔼 Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3 # https://github.com/github/codeql-action
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: 🛡️🔍 Scan Image for Vulnerabilities using Dockle
+        if: always()
+        uses: goodwithtech/dockle-action@v0.4.15 # https://github.com/goodwithtech/dockle-action
+        with:
+          image: '${{ env.GHCR_IMAGE }}:${{ matrix.config.debian_codename }}-latest'
+          format: 'list'
+          exit-code: '0'
+          exit-level: 'warn'
 
   test-image:
 
