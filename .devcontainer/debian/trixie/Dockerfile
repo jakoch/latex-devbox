@@ -196,17 +196,17 @@ RUN echo "Packages" && \
     cpanm YAML::Tiny File::HomeDir
 
 # +-------------------------------------+
-# | Java via OpenJDK21                  |
+# | Java via OpenJDK23                 |
 # +-------------------------------------+
 
-COPY --from=builder /usr/local/jdk-21 /usr/local/jdk-21
+COPY --from=builder /usr/local/jdk-23 /usr/local/jdk-23
 
 RUN echo "OpenJDK Symlink" && \
-    ln -s /usr/local/jdk-21/bin/java /usr/bin/java && \
-    ln -s /usr/local/jdk-21/bin/javac /usr/bin/javac && \
-    ln -s /usr/local/jdk-21/bin/jshell /usr/bin/jshell
+    ln -s /usr/local/jdk-23/bin/java /usr/bin/java && \
+    ln -s /usr/local/jdk-23/bin/javac /usr/bin/javac && \
+    ln -s /usr/local/jdk-23/bin/jshell /usr/bin/jshell
 
-ENV JAVA_HOME=/usr/local/jdk-21
+ENV JAVA_HOME=/usr/local/jdk-23
 ENV PATH=$JAVA_HOME/bin:$PATH
 
 # +-----------------------------+
