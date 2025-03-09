@@ -21,35 +21,32 @@ RUN echo "Builder Stage" && \
     # +-------------------------------------+
     # | OpenJDK                             |
     # +-------------------------------------+
-    # Download
-    # v21 https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html
-    #     https://download.oracle.com/java/21/archive/jdk-21.0.5_linux-x64_bin.tar.gz
-    curl $CURL_OPTIONS_BAR -o jdk-23.tar.gz -L "https://download.oracle.com/java/23/archive/jdk-23.0.1_linux-x64_bin.tar.gz" && \
-    # Extract -> /usr/local/jdk-21
-    mkdir /usr/local/jdk-23 && \
-    tar -xvf jdk-23.tar.gz -C /usr/local/jdk-23 --strip-components=1 && \
+    curl $CURL_OPTIONS_BAR -o jdk.tar.gz -L "https://download.oracle.com/java/23/latest/jdk-23_linux-x64_bin.tar.gz" && \
+    # Extract -> /usr/local/jdk
+    mkdir /usr/local/jdk && \
+    tar -xvf jdk.tar.gz -C /usr/local/jdk --strip-components=1 && \
     # Cleanup
-    rm jdk-23.tar.gz && \
+    rm jdk.tar.gz && \
     # +-------------------------------------+
     # | Latex Language Sever (ltex-ls-plus) |
     # +-------------------------------------+
     # Download
-    LTEX_VERSION=$(curl -s https://api.github.com/repos/ltex-plus/ltex-ls-plus/releases/latest | jq -r '.tag_name'); && \
-    [[ -z "$LTEX_VERSION" || "$LTEX_VERSION" == "null" ]] && { echo "Failed to fetch LTEX_VERSION"; exit 1; } && \
+    LTEX_VERSION=$(curl -s https://api.github.com/repos/ltex-plus/ltex-ls-plus/releases/latest | jq -r '.tag_name') && \
     echo "Latest Version: \"$LTEX_VERSION\"" && \
     LTEX_URL="https://github.com/ltex-plus/ltex-ls-plus/releases/download/${LTEX_VERSION}/ltex-ls-plus-${LTEX_VERSION}-linux-x64.tar.gz" && \
+    echo "Download URL: \"$LTEX_URL\"" && \
     curl $CURL_OPTIONS_BAR -o ltex.tar.gz -L ${LTEX_URL} && \
     # Extract -> /opt/ltex
     tar -xzf ltex.tar.gz && \
     mv -v ltex-ls-plus-${LTEX_VERSION} /opt/ltex && \
     # Cleanup
-    rm -vf ltex.tar.gz  && \
+    rm -vf ltex.tar.gz && \
     # +-------------------------------------+
     # | TEX-FMT                             |
     # +-------------------------------------+
     # Download
     TEX_FMT_VERSION=$(curl -s https://api.github.com/repos/wgunderwood/tex-fmt/releases/latest | jq -r '.tag_name') && \
-    [[ -z "$TEX_FMT_VERSION" || "$TEX_FMT_VERSION" == "null" ]] && { echo "Failed to fetch TEX_FMT_VERSION"; exit 1; } && \
+    if [[ -z "$TEX_FMT_VERSION" || "$TEX_FMT_VERSION" == "null" ]]; then echo "Failed to fetch TEX_FMT_VERSION"; exit 1; fi && \
     echo "Latest Version: \"$TEX_FMT_VERSION\"" && \
     TEX_FMT_URL="https://github.com/wgunderwood/tex-fmt/releases/download/${TEX_FMT_VERSION}/tex-fmt-x86_64-linux.tar.gz" && \
     curl $CURL_OPTIONS_BAR -o tex-fmt.tar.gz -L ${TEX_FMT_URL} && \
@@ -199,14 +196,14 @@ RUN echo "Packages" && \
 # | Java via OpenJDK23                 |
 # +-------------------------------------+
 
-COPY --from=builder /usr/local/jdk-23 /usr/local/jdk-23
+COPY --from=builder /usr/local/jdk /usr/local/jdk
 
 RUN echo "OpenJDK Symlink" && \
-    ln -s /usr/local/jdk-23/bin/java /usr/bin/java && \
-    ln -s /usr/local/jdk-23/bin/javac /usr/bin/javac && \
-    ln -s /usr/local/jdk-23/bin/jshell /usr/bin/jshell
+    ln -s /usr/local/jdk/bin/java /usr/bin/java && \
+    ln -s /usr/local/jdk/bin/javac /usr/bin/javac && \
+    ln -s /usr/local/jdk/bin/jshell /usr/bin/jshell
 
-ENV JAVA_HOME=/usr/local/jdk-23
+ENV JAVA_HOME=/usr/local/jdk
 ENV PATH=$JAVA_HOME/bin:$PATH
 
 # +-----------------------------+
