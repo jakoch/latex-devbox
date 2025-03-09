@@ -24,12 +24,12 @@ RUN echo "Builder Stage" && \
     # Download
     # v21 https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html
     #     https://download.oracle.com/java/21/archive/jdk-21.0.5_linux-x64_bin.tar.gz
-    curl $CURL_OPTIONS_BAR -o jdk-21.tar.gz -L "https://download.oracle.com/java/23/archive/jdk-23.0.1_linux-x64_bin.tar.gz" && \
+    curl $CURL_OPTIONS_BAR -o jdk-23.tar.gz -L "https://download.oracle.com/java/23/archive/jdk-23.0.1_linux-x64_bin.tar.gz" && \
     # Extract -> /usr/local/jdk-21
-    mkdir /usr/local/jdk-21 && \
-    tar -xvf jdk-21.tar.gz -C /usr/local/jdk-21 --strip-components=1 && \
+    mkdir /usr/local/jdk-23 && \
+    tar -xvf jdk-23.tar.gz -C /usr/local/jdk-23 --strip-components=1 && \
     # Cleanup
-    rm jdk-21.tar.gz && \
+    rm jdk-23.tar.gz && \
     # +-------------------------------------+
     # | Latex Language Sever (ltex-ls-plus) |
     # +-------------------------------------+
