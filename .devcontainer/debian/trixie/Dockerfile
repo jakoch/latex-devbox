@@ -32,7 +32,9 @@ RUN echo "Builder Stage" && \
     # | Latex Language Sever (ltex-ls-plus) |
     # +-------------------------------------+
     # Download
-    LTEX_VERSION=$(curl -s https://api.github.com/repos/ltex-plus/ltex-ls-plus/releases/latest | jq -r '.tag_name'); echo "Latest Version: \"$LTEX_VERSION\"" && \
+    LTEX_VERSION=$(curl -s https://api.github.com/repos/ltex-plus/ltex-ls-plus/releases/latest | jq -r '.tag_name'); && \
+    [[ -z "$LTEX_VERSION" || "$LTEX_VERSION" == "null" ]] && { echo "Failed to fetch LTEX_VERSION"; exit 1; } && \
+    echo "Latest Version: \"$LTEX_VERSION\"" && \
     LTEX_URL="https://github.com/ltex-plus/ltex-ls-plus/releases/download/${LTEX_VERSION}/ltex-ls-plus-${LTEX_VERSION}-linux-x64.tar.gz" && \
     curl $CURL_OPTIONS_BAR -o ltex.tar.gz -L ${LTEX_URL} && \
     # Extract -> /opt/ltex
@@ -44,7 +46,9 @@ RUN echo "Builder Stage" && \
     # | TEX-FMT                             |
     # +-------------------------------------+
     # Download
-    TEX_FMT_VERSION=$(curl -s https://api.github.com/repos/wgunderwood/tex-fmt/releases/latest | jq -r '.tag_name'); echo "Latest Version: \"$TEX_FMT_VERSION\"" && \
+    TEX_FMT_VERSION=$(curl -s https://api.github.com/repos/wgunderwood/tex-fmt/releases/latest | jq -r '.tag_name') && \
+    [[ -z "$TEX_FMT_VERSION" || "$TEX_FMT_VERSION" == "null" ]] && { echo "Failed to fetch TEX_FMT_VERSION"; exit 1; } && \
+    echo "Latest Version: \"$TEX_FMT_VERSION\"" && \
     TEX_FMT_URL="https://github.com/wgunderwood/tex-fmt/releases/download/${TEX_FMT_VERSION}/tex-fmt-x86_64-linux.tar.gz" && \
     curl $CURL_OPTIONS_BAR -o tex-fmt.tar.gz -L ${TEX_FMT_URL} && \
     # Extract
