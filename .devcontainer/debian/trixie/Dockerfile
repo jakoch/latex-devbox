@@ -9,8 +9,8 @@
 FROM debian:trixie-slim AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    # CURL_OPTIONS="--silent --show-error --retry 5 --connect-timeout 20 --max-time 10"
-    CURL_OPTIONS_BAR="--progress-bar"
+    DEBCONF_NOWARNINGS="yes" \
+    CURL_OPTIONS="--silent --show-error --retry 5 --location"
 
 WORKDIR /tmp
 
@@ -67,7 +67,6 @@ ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 ARG USER_GECOS=TeXLive
 
-
 # +-----------------------------+
 # | METADATA                    |
 # +-----------------------------+
@@ -118,8 +117,8 @@ RUN echo "Add sudo support for non-root user" && \
 #                                                  "Y88P"
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    # CURL_OPTIONS="--silent --show-error --retry 5 --connect-timeout 20 --max-time 10"
-    CURL_OPTIONS_BAR="--progress-bar"
+    DEBCONF_NOWARNINGS="yes" \
+    CURL_OPTIONS="--silent --show-error --retry 5 --location"
 
 RUN echo "Packages" && \
     apt-get update && apt-get install -y --no-install-recommends \
