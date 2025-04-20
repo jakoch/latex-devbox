@@ -21,7 +21,8 @@ RUN echo "Builder Stage" && \
     # +-------------------------------------+
     # | OpenJDK                             |
     # +-------------------------------------+
-    curl $CURL_OPTIONS_BAR -o jdk.tar.gz -L "https://download.oracle.com/java/23/latest/jdk-23_linux-x64_bin.tar.gz" && \
+    # https://www.oracle.com/java/technologies/downloads/ 
+    curl $CURL_OPTIONS_BAR -o jdk.tar.gz -L "https://download.oracle.com/java/24/latest/jdk-24_linux-x64_bin.tar.gz" && \
     # Extract -> /usr/local/jdk
     mkdir /usr/local/jdk && \
     tar -xvf jdk.tar.gz -C /usr/local/jdk --strip-components=1 && \
