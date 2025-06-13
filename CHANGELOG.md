@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - "It was a bright day in April, and the clocks were striking thirteen." - 1984
 
+## [1.0.0] - 2025-06-14
+
+- No changes: stable release
+
 ## [0.0.3] - 2025-03-25
 
 **Changed**
@@ -27,7 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Section for Reference Links -->
 
-[vNext]: https://github.com/jakoch/latex-devbox/compare/v0.0.3...HEAD
-[0.0.3]: https://github.com/jakoch/latex-devbox/releases/tag/v0.0.3
-[0.0.2]: https://github.com/jakoch/latex-devbox/releases/tag/v0.0.2
+[vNext]: https://github.com/jakoch/latex-devbox/compare/v0.0.1...HEAD
+[1.0.0]: https://github.com/jakoch/latex-devbox/compare/v0.0.3...v1.0.0
+[0.0.3]: https://github.com/jakoch/latex-devbox/compare/v0.0.2...v0.0.3
+[0.0.2]: https://github.com/jakoch/latex-devbox/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/jakoch/latex-devbox/releases/tag/v0.0.1
