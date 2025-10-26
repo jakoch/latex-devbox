@@ -17,17 +17,36 @@ WORKDIR /tmp
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN echo "Builder Stage" && \
     apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl jq && \
+      ca-certificates \
+      curl \
+      jq && \
     # +-------------------------------------+
     # | OpenJDK                             |
     # +-------------------------------------+
     # https://www.oracle.com/java/technologies/downloads/
-    curl $CURL_OPTIONS_BAR -o jdk.tar.gz -L "https://download.oracle.com/java/25/latest/jdk-25_linux-x64_bin.tar.gz" && \
-    # Extract -> /usr/local/jdk
+    # Set JAVA_VERSION
+    export JAVA_VERSION=25 && \
+    # Download JDK and its SHA256 checksum file, verify before extracting
+    curl $CURL_OPTIONS_BAR -o jdk.tar.gz -L "https://download.oracle.com/java/${JAVA_VERSION}/latest/jdk-${JAVA_VERSION}_linux-x64_bin.tar.gz" && \
+    curl $CURL_OPTIONS_BAR -o jdk.tar.gz.sha256 -L "https://download.oracle.com/java/${JAVA_VERSION}/latest/jdk-${JAVA_VERSION}_linux-x64_bin.tar.gz.sha256" && \
+    # Verify checksum file format and value
+    if ! grep -qE "^[0-9a-fA-F]{64}" jdk.tar.gz.sha256; then \
+        echo "Checksum file missing or malformed"; \
+        cat jdk.tar.gz.sha256 || true; \
+        exit 1; \
+    fi && \
+    # Verify checksum
+    HASH=$(grep -oE "^[0-9a-fA-F]{64}" jdk.tar.gz.sha256 | head -n1) && \
+    echo "$HASH  jdk.tar.gz" | sha256sum -c --status || { \
+        echo "JDK checksum verification FAILED"; \
+        ls -l jdk.tar.gz jdk.tar.gz.sha256; \
+        exit 1; \
+    } && \
+    # Extract to /usr/local/jdk
     mkdir /usr/local/jdk && \
     tar -xvf jdk.tar.gz -C /usr/local/jdk --strip-components=1 && \
     # Cleanup
-    rm jdk.tar.gz && \
+    rm -f jdk.tar.gz jdk.tar.gz.sha256 && \
     # +-------------------------------------+
     # | Latex Language Sever (ltex-ls-plus) |
     # +-------------------------------------+
@@ -37,7 +56,7 @@ RUN echo "Builder Stage" && \
     LTEX_URL="https://github.com/ltex-plus/ltex-ls-plus/releases/download/${LTEX_VERSION}/ltex-ls-plus-${LTEX_VERSION}-linux-x64.tar.gz" && \
     echo "Download URL: \"$LTEX_URL\"" && \
     curl $CURL_OPTIONS_BAR -o ltex.tar.gz -L ${LTEX_URL} && \
-    # Extract -> /opt/ltex
+    # Extract to /opt/ltex
     tar -xzf ltex.tar.gz && \
     mv -v ltex-ls-plus-${LTEX_VERSION} /opt/ltex && \
     # Cleanup
@@ -260,9 +279,12 @@ RUN echo "ZSH" && \
     git clone --depth=1 https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-completions && \
     git clone --depth=1 https://github.com/zsh-users/zsh-history-substring-search ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-history-substring-search && \
     # Update .zshrc
-	sed -i "s/plugins=(git)/plugins=(git zsh-completions zsh-autosuggestions zsh-history-substring-search)/" /root/.zshrc && \
-    sed -i "s/ZSH_THEME=\"agnoster\"/ZSH_THEME=\"robbyrussell\"/" /root/.zshrc && \
-    sed -i "s/# DISABLE_AUTO_UPDATE=\"true\"/DISABLE_AUTO_UPDATE=\"true\"/" /root/.zshrc && \
+    sed -i \
+      -e 's/^plugins=(git.*)/plugins=(git zsh-completions zsh-autosuggestions zsh-history-substring-search)/' \
+      -e 's/^ZSH_THEME="[^"]*"/ZSH_THEME="robbyrussell"/' \
+      -e 's/^# *DISABLE_UPDATE_PROMPT="true"/DISABLE_UPDATE_PROMPT="true"/' \
+      -e 's/^# *DISABLE_AUTO_UPDATE="true"/DISABLE_AUTO_UPDATE="true"/' \
+    /root/.zshrc && \
 	# Cleanup
 	apt-get autoremove -y && \
     apt-get clean autoclean && \
