@@ -134,7 +134,7 @@ jobs:
           docker images --digests
 
       - name: 📦 Provide the version info and info.json as a release asset
-        uses: actions/upload-artifact@v4 # https://github.com/actions/upload-artifact
+        uses: actions/upload-artifact@v5 # https://github.com/actions/upload-artifact
         with:
           name: version-info-${{ matrix.config.debian_codename }}
           path: |
@@ -206,7 +206,7 @@ jobs:
           ls -l latex-demo/
 
       - name: 🔼 Upload PDF Output
-        uses: actions/upload-artifact@v4 # https://github.com/actions/upload-artifact
+        uses: actions/upload-artifact@v5 # https://github.com/actions/upload-artifact
         with:
           name: latex-output
           path: latex-demo/
