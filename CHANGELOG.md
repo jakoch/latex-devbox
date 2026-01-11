@@ -11,7 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - "It was a bright day in April, and the clocks were striking thirteen." - 1984
 
+## [1.0.2] - 2026-01-11
+
+### Changed
+
+- fetch fonts-powerline package using apt
+
 ## [1.0.1] - 2025-10-26
+
+### Changed
 
 - updated to Java SDK 25, added checksum verification
 - disabled zsh update prompt and auto update feature (DISABLE_UPDATE_PROMPT & DISABLE_AUTO_UPDATE)
@@ -22,12 +30,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.3] - 2025-03-25
 
-**Changed**
+### Changed
+
 - fixed curl options (to be silent, instead of spamming the logs)
 
 ## [0.0.2] - 2025-01-26
 
-**Changed**
+### Changed
+
 - fixed installation of "fonts-powerline"
 
 ## [0.0.1] - 2024-12-26
@@ -36,7 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Section for Reference Links -->
 
-[vNext]: https://github.com/jakoch/latex-devbox/compare/v1.0.1...HEAD
+[vNext]: https://github.com/jakoch/latex-devbox/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/jakoch/latex-devbox/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/jakoch/latex-devbox/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/jakoch/latex-devbox/compare/v0.0.3...v1.0.0
 [0.0.3]: https://github.com/jakoch/latex-devbox/compare/v0.0.2...v0.0.3

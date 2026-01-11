@@ -24,6 +24,7 @@ RUN echo "Builder Stage" && \
     # | OpenJDK                             |
     # +-------------------------------------+
     # https://www.oracle.com/java/technologies/downloads/
+    # Early access downloads: https://jdk.java.net/
     # Set JAVA_VERSION
     export JAVA_VERSION=25 && \
     # Download JDK and its SHA256 checksum file, verify before extracting
