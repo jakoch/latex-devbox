@@ -162,7 +162,7 @@ jobs:
         #   This is a false positive, because the file is a private key, which is intended to be there.
 
       - name: 🛡️🔼 Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4.37.3 # https://github.com/github/codeql-action
+        uses: github/codeql-action/upload-sarif@v4.38.2 # https://github.com/github/codeql-action
         with:
           sarif_file: 'trivy-results.sarif'
 
