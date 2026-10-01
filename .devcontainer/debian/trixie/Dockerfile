@@ -8,6 +8,11 @@
 
 FROM debian:trixie-slim AS builder
 
+# Set automatically by BuildKit/buildx. Unset for the legacy builder, in which
+# case the architecture mapping below fails the build instead of silently
+# producing an image for the wrong CPU.
+ARG TARGETARCH
+
 ENV DEBIAN_FRONTEND=noninteractive \
     DEBCONF_NOWARNINGS="yes" \
     CURL_OPTIONS="--silent --show-error --retry 5 --location"
@@ -20,6 +25,21 @@ RUN echo "Builder Stage" && \
       ca-certificates \
       curl \
       jq && \
+    rm -rf /var/lib/apt/lists/* /var/tmp/* && \
+    # +-------------------------------------+
+    # | Architecture mapping                  |
+    # +-------------------------------------+
+    # Each upstream project names its release
+    # assets differently, so map Docker's
+    # TARGETARCH onto the three naming schemes
+    # used below: Oracle JDK, ltex-ls-plus and
+    # tex-fmt.
+    case "${TARGETARCH}" in \
+      amd64) JDK_ARCH=x64;     LTEX_ARCH=x64;     TEX_FMT_ARCH=x86_64  ;; \
+      arm64) JDK_ARCH=aarch64; LTEX_ARCH=aarch64; TEX_FMT_ARCH=aarch64 ;; \
+      *) echo "Unsupported TARGETARCH: '${TARGETARCH}' (supported: amd64, arm64)"; exit 1 ;; \
+    esac && \
+    echo "TARGETARCH=${TARGETARCH} -> JDK_ARCH=${JDK_ARCH} LTEX_ARCH=${LTEX_ARCH} TEX_FMT_ARCH=${TEX_FMT_ARCH}" && \
     # +-------------------------------------+
     # | OpenJDK                             |
     # +-------------------------------------+
@@ -28,8 +48,8 @@ RUN echo "Builder Stage" && \
     # Set JAVA_VERSION
     export JAVA_VERSION=25 && \
     # Download JDK and its SHA256 checksum file, verify before extracting
-    curl $CURL_OPTIONS_BAR -o jdk.tar.gz -L "https://download.oracle.com/java/${JAVA_VERSION}/latest/jdk-${JAVA_VERSION}_linux-x64_bin.tar.gz" && \
-    curl $CURL_OPTIONS_BAR -o jdk.tar.gz.sha256 -L "https://download.oracle.com/java/${JAVA_VERSION}/latest/jdk-${JAVA_VERSION}_linux-x64_bin.tar.gz.sha256" && \
+    curl $CURL_OPTIONS -o jdk.tar.gz -L "https://download.oracle.com/java/${JAVA_VERSION}/latest/jdk-${JAVA_VERSION}_linux-${JDK_ARCH}_bin.tar.gz" && \
+    curl $CURL_OPTIONS -o jdk.tar.gz.sha256 -L "https://download.oracle.com/java/${JAVA_VERSION}/latest/jdk-${JAVA_VERSION}_linux-${JDK_ARCH}_bin.tar.gz.sha256" && \
     # Verify checksum file format and value
     if ! grep -qE "^[0-9a-fA-F]{64}" jdk.tar.gz.sha256; then \
         echo "Checksum file missing or malformed"; \
@@ -54,9 +74,9 @@ RUN echo "Builder Stage" && \
     # Download
     LTEX_VERSION=$(curl -s https://api.github.com/repos/ltex-plus/ltex-ls-plus/releases/latest | jq -r '.tag_name') && \
     echo "Latest Version: \"$LTEX_VERSION\"" && \
-    LTEX_URL="https://github.com/ltex-plus/ltex-ls-plus/releases/download/${LTEX_VERSION}/ltex-ls-plus-${LTEX_VERSION}-linux-x64.tar.gz" && \
+    LTEX_URL="https://github.com/ltex-plus/ltex-ls-plus/releases/download/${LTEX_VERSION}/ltex-ls-plus-${LTEX_VERSION}-linux-${LTEX_ARCH}.tar.gz" && \
     echo "Download URL: \"$LTEX_URL\"" && \
-    curl $CURL_OPTIONS_BAR -o ltex.tar.gz -L ${LTEX_URL} && \
+    curl $CURL_OPTIONS -o ltex.tar.gz -L ${LTEX_URL} && \
     # Extract to /opt/ltex
     tar -xzf ltex.tar.gz && \
     mv -v ltex-ls-plus-${LTEX_VERSION} /opt/ltex && \
@@ -69,8 +89,8 @@ RUN echo "Builder Stage" && \
     TEX_FMT_VERSION=$(curl -s https://api.github.com/repos/wgunderwood/tex-fmt/releases/latest | jq -r '.tag_name') && \
     if [[ -z "$TEX_FMT_VERSION" || "$TEX_FMT_VERSION" == "null" ]]; then echo "Failed to fetch TEX_FMT_VERSION"; exit 1; fi && \
     echo "Latest Version: \"$TEX_FMT_VERSION\"" && \
-    TEX_FMT_URL="https://github.com/wgunderwood/tex-fmt/releases/download/${TEX_FMT_VERSION}/tex-fmt-x86_64-linux.tar.gz" && \
-    curl $CURL_OPTIONS_BAR -o tex-fmt.tar.gz -L ${TEX_FMT_URL} && \
+    TEX_FMT_URL="https://github.com/wgunderwood/tex-fmt/releases/download/${TEX_FMT_VERSION}/tex-fmt-${TEX_FMT_ARCH}-linux.tar.gz" && \
+    curl $CURL_OPTIONS -o tex-fmt.tar.gz -L ${TEX_FMT_URL} && \
     # Extract
     tar -xzvf tex-fmt.tar.gz && \
     mv -v tex-fmt /usr/local/bin && \
@@ -96,11 +116,10 @@ ARG USER_GECOS=TeXLive
 
 LABEL \
     maintainer="Jens A. Koch <jakoch@web.de>" \
-    org.opencontainers.image.created="$(date --utc --iso-8601=seconds)" \
     org.opencontainers.image.authors='Jens A. Koch <jakoch@web.de>' \
-    org.opencontainers.image.url='https://ghcr.io/jakoch/latex-devbox' \
-    org.opencontainers.image.source='https://github.com/jakoch/latex-devbox'\
-    org.opencontainers.image.title='ghcr.io/jakoch/cpp-devbox'\
+    org.opencontainers.image.url='https://github.com/jakoch/latex-devbox' \
+    org.opencontainers.image.source='https://github.com/jakoch/latex-devbox' \
+    org.opencontainers.image.title='ghcr.io/jakoch/latex-devbox' \
     org.opencontainers.image.description="A Docker-based devcontainer for documentation development. Based on Debian with LaTeX (TexLive+TexLS), Pandoc, AsciiDoc, and Docbook." \
     org.opencontainers.image.licenses=MIT
 
@@ -208,7 +227,7 @@ RUN echo "Packages" && \
 	# Cleanup
 	apt-get autoremove -y && \
     apt-get clean autoclean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
+    rm -rf /var/lib/apt/lists/* /var/tmp/* && \
     # Install perl modules for latexindent via cpanm
     cpanm YAML::Tiny File::HomeDir
 
@@ -254,25 +273,14 @@ COPY --from=builder /usr/local/bin/tex-fmt /usr/local/bin/tex-fmt
 # Setup zsh, ohmyzsh, fontconfig, powerline fonts.
 # Setup zsh plugins: autosuggestions, autocompletions, history search.
 
-ENV TERM=xterm-256color \
-    ZSH_THEME=agnoster
+ENV TERM=xterm-256color
 
 # Setup zsh for the root user
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN echo "ZSH" && \
-    # Install fonts
+    # Install zsh and the fonts required by the powerline prompt
     apt-get update && apt-get install --no-install-recommends --assume-yes \
     zsh fontconfig fonts-powerline && \
-    # Download and install fonts-powerline
-    # An installation via apt-get is not possible for trixie,
-	# because the package is only available in unstable(sid).
-    # https://packages.debian.org/sid/fonts-powerline
-	# https://api.ftp-master.debian.org/madison?package=fonts-powerline&table=debian
-    #FONTS_POWERLINE_VERSION=$(curl -s 'https://api.ftp-master.debian.org/madison?package=fonts-powerline&table=debian&s=unstable&f=json' | jq -r '.[0]["fonts-powerline"].unstable | keys[0]'); echo "Latest Version: \"$FONTS_POWERLINE_VERSION\"" && \
-    #FONTS_POWERLINE_URL="http://ftp.de.debian.org/debian/pool/main/p/powerline/fonts-powerline_${FONTS_POWERLINE_VERSION}_all.deb" && \
-    #curl -o fonts-powerline.deb -L ${FONTS_POWERLINE_URL} && \
-    #dpkg -i fonts-powerline.deb && \
-    #rm fonts-powerline.deb && \
     # Install Oh My Zsh
     curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh && \
 	# Add Zsh plugins
@@ -289,7 +297,7 @@ RUN echo "ZSH" && \
 	# Cleanup
 	apt-get autoremove -y && \
     apt-get clean autoclean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    rm -rf /var/lib/apt/lists/* /var/tmp/*
 
 # Setup zsh for the texlive user by copying the root configuration
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -309,11 +317,15 @@ ENV SHELL=/bin/zsh
 RUN echo "Cleanup" && \
     apt-get autoremove -y && \
     apt-get clean autoclean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    rm -rf /var/lib/apt/lists/* /var/tmp/*
 
 # +-----------------------------+
 # | Set Locale + Timezone       |
 # +-----------------------------+
+
+# Default working directory.
+# This is a fallback for plain "docker run" usage, overridden by devcontainer.
+WORKDIR /workspace
 
 ENV TZ=Europe/Berlin
 
@@ -323,12 +335,14 @@ RUN echo "Locale & Timezone" && \
     dpkg-reconfigure -f noninteractive tzdata && \
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     sed -i -e 's/# de_DE.UTF-8 UTF-8/de_DE.UTF-8 UTF-8/' /etc/locale.gen && \
-    echo 'LANG="de_DE.UTF-8"' > /etc/default/locale && \
+    # generate the enabled locales, then set the default
     dpkg-reconfigure -f noninteractive locales && \
     update-locale LANG=de_DE.UTF-8 && \
     echo "export PATH=$PATH" > /etc/environment
 
-ENV LANG=de_DE.UTF-8 LANGUAGE=de_DE:de LC_ALL=de_DE.UTF-8
+# Note: LC_ALL is deliberately not set here. It would override the locale a user
+# picks inside the container. LANG/LANGUAGE provide the default.
+ENV LANG=de_DE.UTF-8 LANGUAGE=de_DE:de
 
 # Switch back to dialog for any ad-hoc use of apt-get
 ENV DEBIAN_FRONTEND=dialog

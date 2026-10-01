@@ -4,11 +4,16 @@
 # https://github.com/hadolint/hadolint#rules for a list of available rules.
 # Online Linter
 # https://hadolint.github.io/hadolint/
+
+# NOTE: hadolint runs as a blocking check in CI (see .github/workflows/release.yml),
+# so every entry below should carry a reason.
+
 ignored:
-  - DL3003 # Use WORKDIR to switch to a directory
-  - DL3008 # Pin versions in apt get install
-  - DL3009 # Delete the apt-get lists after installing something
-  - SC2086 # Double quote to prevent globbing and word splitting.
+  # Intentionally ignored: pinning Debian package versions
+  # would require rebuilding on every point release and
+  # defeats the purpose of tracking Debian stable.
+  - DL3008: Pin versions in apt get install.
+
 trustedRegistries:
   - docker.io
   - ghcr.io

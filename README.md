@@ -4,6 +4,8 @@ A Docker development box for documentation creation using LaTeX.
 
 **Debian Linux 13 Trixie with LaTeX (TexLive + TexLS), Pandoc, AsciiDoc, Docbook.**
 
+Published for `linux/amd64` and `linux/arm64`.
+
 ## What is this?
 
 This repository maintains a Dockerfile for generating a container image based on Debian Linux.
