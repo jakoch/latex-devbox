@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - "It was a bright day in April, and the clocks were striking thirteen." - 1984
 
+### Fixed
+
+- the Dependabot `docker` entry pointed at `/devcontainer/debian/trixie` instead of
+  `/.devcontainer/debian/trixie`, so every Dockerfile update job failed with
+  `dependency_file_not_found`
+
 ## [1.0.3] - 2026-10-01
 
 ### Fixed
