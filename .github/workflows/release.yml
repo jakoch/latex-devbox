@@ -61,7 +61,7 @@ jobs:
           docker-images: false
 
       - name: 🤘 Checkout Code
-        uses: actions/checkout@v6 # https://github.com/actions/checkout
+        uses: actions/checkout@v7 # https://github.com/actions/checkout
 
       - name: 🔍 Run hadolint
         uses: hadolint/hadolint-action@v3.5.0 # https://github.com/hadolint/hadolint-action
@@ -70,20 +70,20 @@ jobs:
 
       - name: 🔒 Login to Github Container Registry (GHCR)
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3 # https://github.com/docker/login-action
+        uses: docker/login-action@v4 # https://github.com/docker/login-action
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 💽 Setup QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4 # https://github.com/docker/setup-qemu-action
         with:
           # amd64 is native to the runner, only arm64 needs emulation
           platforms: linux/arm64
 
       - name: 🔽 Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # latex-devbox:{debian_codename}-{{date}}                # only on scheduled builds
       # latex-devbox:{debian_codename}-{{version}}             # only on git tag
@@ -92,7 +92,7 @@ jobs:
       # latex-devbox:{debian_codename}-latest                  # always
       - name: ✏ Setup Docker Metadata
         id: metadata-base
-        uses: docker/metadata-action@v5 # https://github.com/docker/metadata-action
+        uses: docker/metadata-action@v6 # https://github.com/docker/metadata-action
         with:
           images: |
             ${{ env.GHCR_IMAGE }}
@@ -118,7 +118,7 @@ jobs:
       # import a manifest list into the local docker image store.
       - name: 📦 🚀 Build and Push
         id: build-base
-        uses: docker/build-push-action@v6 # https://github.com/docker/build-push-action
+        uses: docker/build-push-action@v7 # https://github.com/docker/build-push-action
         with:
           context: .
           file: .devcontainer/debian/${{ matrix.config.debian_codename }}/Dockerfile
@@ -133,7 +133,7 @@ jobs:
           docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:${{ matrix.config.debian_codename }}-latest
 
       - name: 📦 Provide the version info and info.json as a release asset
-        uses: actions/upload-artifact@v6 # https://github.com/actions/upload-artifact
+        uses: actions/upload-artifact@v7 # https://github.com/actions/upload-artifact
         with:
           name: version-info-${{ matrix.config.debian_codename }}
           path: |
@@ -159,7 +159,7 @@ jobs:
         #   This is a false positive, because the file is a private key, which is intended to be there.
 
       - name: 🛡️🔼 Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4 # https://github.com/github/codeql-action
+        uses: github/codeql-action/upload-sarif@v4.37.3 # https://github.com/github/codeql-action
         with:
           sarif_file: 'trivy-results.sarif'
 
@@ -198,11 +198,11 @@ jobs:
 
     steps:
       - name: 🤘 Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: 💽 Setup QEMU
         if: matrix.config.arch == 'arm64'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4 # https://github.com/docker/setup-qemu-action
         with:
           platforms: linux/arm64
 
@@ -246,7 +246,7 @@ jobs:
 
       - name: 🔼 Upload PDF Output
         if: matrix.config.arch == 'amd64'
-        uses: actions/upload-artifact@v6 # https://github.com/actions/upload-artifact
+        uses: actions/upload-artifact@v7 # https://github.com/actions/upload-artifact
         with:
           name: latex-output
           path: latex-demo/
