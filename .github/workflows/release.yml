@@ -67,6 +67,9 @@ jobs:
         uses: hadolint/hadolint-action@v3.5.0 # https://github.com/hadolint/hadolint-action
         with:
           dockerfile: .devcontainer/debian/${{ matrix.config.debian_codename }}/Dockerfile
+          # passed explicitly: the action's default is ./.hadolint.yaml, and a
+          # silently-missing config file disables every ignore rule
+          config: .hadolint.yml
 
       - name: 🔒 Login to Github Container Registry (GHCR)
         if: github.event_name != 'pull_request'

@@ -7,12 +7,28 @@
 
 # NOTE: hadolint runs as a blocking check in CI (see .github/workflows/release.yml),
 # so every entry below should carry a reason.
+#
+# NOTE: "ignored" must be a list of plain rule-name strings. Writing an entry as
+# "- DL3008: some text" turns it into a YAML mapping, hadolint then refuses to
+# parse this file, and *all* ignores are silently dropped.
 
 ignored:
-  # Intentionally ignored: pinning Debian package versions
-  # would require rebuilding on every point release and
-  # defeats the purpose of tracking Debian stable.
-  - DL3008: Pin versions in apt get install.
+  # Pin versions in apt get install.
+  # Intentionally ignored: pinning Debian package versions would mean rebuilding
+  # on every point release, which defeats tracking Debian stable.
+  - DL3008
+
+  # Double quote to prevent globbing and word splitting.
+  # The package lists in this Dockerfile are intentionally unquoted; quoting them
+  # would be wrong, and quoting them "correctly" would mean building the package
+  # list dynamically. This was ignored before hadolint became a blocking check.
+  - SC2086
+
+  # Potentially sensitive data should not be used in ARG or ENV.
+  # False positive: hadolint 2.15 matches the substring "user" in argument names,
+  # so the conventional ARG USERNAME=texlive is flagged. It holds a user name,
+  # not a secret. Renaming it would break "--build-arg USERNAME=" for consumers.
+  - DL3064
 
 trustedRegistries:
   - docker.io
