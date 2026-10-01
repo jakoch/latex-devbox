@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - removed the dead `fonts-powerline` `.deb` download block (the package comes from apt now)
 - generate the locales before setting the default locale, and no longer force `LC_ALL`
 - removed the contradictory `ZSH_THEME=agnoster` environment variable
+- the hadolint ignore list contained a YAML mapping instead of plain strings, so hadolint
+  discarded every ignore rule; now that hadolint is a blocking check, that failed the
+  release build before the image was built
 
 ### Added
 
