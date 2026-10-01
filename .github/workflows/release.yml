@@ -172,10 +172,23 @@ jobs:
         with:
           image: '${{ env.GHCR_IMAGE }}:${{ matrix.config.debian_codename }}-latest'
           format: 'list'
-          # Fail on hard errors only. 'warn' would also fail on the many advisory
+          # Fail on errors and fatals. 'warn' would also fail on the advisory
           # checks a TeX Live image trips, which are not all worth acting on.
           exit-code: '1'
           exit-level: 'error'
+          # DKL-DI-0001 "Avoid sudo command": installing sudo and granting the
+          # unprivileged user passwordless sudo is a deliberate feature of this
+          # devcontainer - it is how users install TeX packages. The check has no
+          # per-finding suppression, so the code itself is ignored.
+          ignore: 'DKL-DI-0001'
+          # CIS-DI-0010 "Do not store credential in environment variables/files"
+          # matches against dockle's broad default keyword list, which flags
+          # USERNAME, PATH, LANG, TERM, SHELL, TZ, ... in addition to real
+          # secrets. Accept only the keys this image legitimately sets, so the
+          # check stays active for genuine credentials.
+          accept-key: 'USERNAME,USER_UID,USER_GID,USER_GECOS,LANG,DEBIAN_FRONTEND,SHELL,PATH,TERM,TZ,JAVA_HOME,maintainer'
+          # mdframed ships its own .mdf layout definition files as package data
+          accept-file-extension: 'mdf'
 
   test-image:
 
