@@ -16,6 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - the Dependabot `docker` entry pointed at `/devcontainer/debian/trixie` instead of
   `/.devcontainer/debian/trixie`, so every Dockerfile update job failed with
   `dependency_file_not_found`
+- `grep` was installed explicitly and `xsltproc` was listed twice in the package step
+
+### Added
+
+- version pinning and checksum verification for all downloaded archives
+- an SBOM and provenance attestation for the published image
+- pull request builds: hadolint and an amd64 image build, without publishing
+
+### Changed
+
+- the build reuses the GitHub Actions layer cache instead of rebuilding from scratch
+- runs are serialized per ref, so two runs cannot push the same tags at once
+- Dockle ignores `CIS-DI-0010`, which only matched innocuous tokens
+- Oh My Zsh and the zsh plugins are unpacked from pinned commits, keeping `.git` out of the image
+- the apt/dpkg build environment is no longer baked into the image environment
 
 ## [1.0.3] - 2026-10-01
 

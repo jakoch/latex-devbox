@@ -9,6 +9,8 @@ name: Release
 on:
   # You can manually run this workflow.
   workflow_dispatch:
+  # Pull requests validate the build (hadolint, amd64 build) without publishing.
+  pull_request:
   # This workflow runs on pushing a semantic versionized tag (e.g. v1.0.0).
   # This workflow does not run when pushing to the main branch.
   push:
@@ -19,6 +21,12 @@ on:
   # This workflow runs on schedule: every Sunday at 1 am.
   schedule:
     - cron: "0 1 * * 0"
+
+# Superseded pull request runs are cancelled; release runs are not, because
+# cancelling one would abort a build that is already pushing to GHCR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   DOCKERHUB_IMAGE: ${{ github.repository }}
@@ -72,6 +80,7 @@ jobs:
           config: .hadolint.yml
 
       - name: 🔒 Login to Github Container Registry (GHCR)
+        # Pull requests do not push, and forks have no write access to the registry.
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v4 # https://github.com/docker/login-action
         with:
@@ -80,6 +89,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 💽 Setup QEMU
+        # only needed for the arm64 half of the multi-platform build
+        if: github.event_name != 'pull_request'
         uses: docker/setup-qemu-action@v4 # https://github.com/docker/setup-qemu-action
         with:
           # amd64 is native to the runner, only arm64 needs emulation
@@ -126,12 +137,20 @@ jobs:
           context: .
           file: .devcontainer/debian/${{ matrix.config.debian_codename }}/Dockerfile
           target: latex-devbox-final
-          platforms: ${{ matrix.config.platforms }}
+          # amd64 only on pull requests: arm64 emulation dominates the runtime.
+          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || matrix.config.platforms }}
           tags: ${{ steps.metadata-base.outputs.tags }}
           labels: ${{ steps.metadata-base.outputs.labels }}
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
+          # Without this, every run rebuilds the whole TeX Live tree (~45 min).
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Attest an SBOM and build provenance next to the image in the registry.
+          sbom: true
+          provenance: mode=max
 
       - name: 🐳 Inspect the published image manifests
+        if: github.event_name != 'pull_request'
         run: |
           docker buildx imagetools inspect ${{ env.GHCR_IMAGE }}:${{ matrix.config.debian_codename }}-latest
 
@@ -143,6 +162,7 @@ jobs:
             info-${{ matrix.config.debian_codename }}.json
 
       - name: 🛡️🔍 Scan Image for Vulnerabilities using Trivy
+        if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@v0.36.0 # https://github.com/aquasecurity/trivy-action
         with:
           image-ref: '${{ env.GHCR_IMAGE }}:${{ matrix.config.debian_codename }}-latest'
@@ -150,10 +170,9 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
-          # Report-only for now: a base image with the full TeX Live tree will
-          # always carry some inherited Debian CVEs, so failing the build on them
-          # is not actionable yet. Promote exit-code to '1' once a reviewed
-          # baseline/allowlist exists.
+          # Report-only: a base image with the full TeX Live tree always carries
+          # some inherited Debian CVEs, so failing on them is not actionable.
+          # Revisit once a reviewed baseline exists.
           exit-code: '0'
           skip-files: /etc/ssh/ssh_host_rsa_key
         # Notes for the skips:
@@ -162,12 +181,13 @@ jobs:
         #   This is a false positive, because the file is a private key, which is intended to be there.
 
       - name: 🛡️🔼 Upload Trivy scan results to GitHub Security tab
+        if: github.event_name != 'pull_request'
         uses: github/codeql-action/upload-sarif@v4.38.2 # https://github.com/github/codeql-action
         with:
           sarif_file: 'trivy-results.sarif'
 
       - name: 🛡️🔍 Scan Image for Vulnerabilities using Dockle
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         uses: goodwithtech/dockle-action@v0.4.15 # https://github.com/goodwithtech/dockle-action
         with:
           image: '${{ env.GHCR_IMAGE }}:${{ matrix.config.debian_codename }}-latest'
@@ -188,6 +208,8 @@ jobs:
     name: Test LaTeX Document
     runs-on: ubuntu-24.04
     needs: build
+    # The test pulls the published image, so pull requests are skipped.
+    if: github.event_name != 'pull_request'
 
     strategy:
       fail-fast: false
