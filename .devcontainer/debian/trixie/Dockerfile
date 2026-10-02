@@ -8,10 +8,15 @@
 
 FROM debian:trixie-slim AS builder
 
-# Set automatically by BuildKit/buildx. Unset for the legacy builder, in which
-# case the architecture mapping below fails the build instead of silently
-# producing an image for the wrong CPU.
+# Set automatically by BuildKit/buildx.
 ARG TARGETARCH
+
+# Upstream releases are pinned.
+# Bumping a download means bumping its version and its checksum together.
+# Nothing is fetched from a moving "latest" URL.
+ARG JAVA_VERSION=25.0.4
+ARG LTEX_VERSION=18.7.0
+ARG TEX_FMT_VERSION=0.5.7
 
 ENV DEBIAN_FRONTEND=noninteractive \
     DEBCONF_NOWARNINGS="yes" \
@@ -23,21 +28,32 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN echo "Builder Stage" && \
     apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
-      curl \
-      jq && \
+      curl && \
     rm -rf /var/lib/apt/lists/* /var/tmp/* && \
     # +-------------------------------------+
     # | Architecture mapping                  |
     # +-------------------------------------+
-    # Each upstream project names its release
-    # assets differently, so map Docker's
-    # TARGETARCH onto the three naming schemes
-    # used below: Oracle JDK, ltex-ls-plus and
-    # tex-fmt.
+    # Each upstream project names its release assets differently,
+    # so map Docker's TARGETARCH onto the three naming schemes used below:
+    # Oracle JDK, ltex-ls-plus and tex-fmt.
     case "${TARGETARCH}" in \
       amd64) JDK_ARCH=x64;     LTEX_ARCH=x64;     TEX_FMT_ARCH=x86_64  ;; \
       arm64) JDK_ARCH=aarch64; LTEX_ARCH=aarch64; TEX_FMT_ARCH=aarch64 ;; \
       *) echo "Unsupported TARGETARCH: '${TARGETARCH}' (supported: amd64, arm64)"; exit 1 ;; \
+    esac && \
+    # +-------------------------------------+
+    # | Checksums                           |
+    # +-------------------------------------+
+    # sha256 sums of the releases pinned in the ARGs above.
+    # Upstream publishes no checksum file for these,
+    # so they are verified against the recorded sum.
+    case "${TARGETARCH}" in \
+      amd64) \
+        LTEX_SHA256=1e16df6c578dc76ff97d644445d126ba6fba5c2e8e174178ab86372652fd7612; \
+        TEX_FMT_SHA256=d0e30b9b811fdc1e66a9328d5c95e9d8e585019288ca39c07f643e0796bcc4a3 ;; \
+      arm64) \
+        LTEX_SHA256=3a92a4dd22ea87ff5d4de4891581ff41bacc7210256ebe9d0e496f1da8382f54; \
+        TEX_FMT_SHA256=ad5a6c8a84f61de711f2d7659191cd7e813ad1881b384abed60df420e1eabdd1 ;; \
     esac && \
     echo "TARGETARCH=${TARGETARCH} -> JDK_ARCH=${JDK_ARCH} LTEX_ARCH=${LTEX_ARCH} TEX_FMT_ARCH=${TEX_FMT_ARCH}" && \
     # +-------------------------------------+
@@ -45,11 +61,11 @@ RUN echo "Builder Stage" && \
     # +-------------------------------------+
     # https://www.oracle.com/java/technologies/downloads/
     # Early access downloads: https://jdk.java.net/
-    # Set JAVA_VERSION
-    export JAVA_VERSION=25 && \
-    # Download JDK and its SHA256 checksum file, verify before extracting
-    curl $CURL_OPTIONS -o jdk.tar.gz -L "https://download.oracle.com/java/${JAVA_VERSION}/latest/jdk-${JAVA_VERSION}_linux-${JDK_ARCH}_bin.tar.gz" && \
-    curl $CURL_OPTIONS -o jdk.tar.gz.sha256 -L "https://download.oracle.com/java/${JAVA_VERSION}/latest/jdk-${JAVA_VERSION}_linux-${JDK_ARCH}_bin.tar.gz.sha256" && \
+    # Patched releases live in the "archive" directory, the checksum file is
+    # published next to the tarball and verified below.
+    JDK_URL="https://download.oracle.com/java/${JAVA_VERSION%%.*}/archive/jdk-${JAVA_VERSION}_linux-${JDK_ARCH}_bin.tar.gz" && \
+    curl $CURL_OPTIONS -o jdk.tar.gz -L "${JDK_URL}" && \
+    curl $CURL_OPTIONS -o jdk.tar.gz.sha256 -L "${JDK_URL}.sha256" && \
     # Verify checksum file format and value
     if ! grep -qE "^[0-9a-fA-F]{64}" jdk.tar.gz.sha256; then \
         echo "Checksum file missing or malformed"; \
@@ -71,26 +87,31 @@ RUN echo "Builder Stage" && \
     # +-------------------------------------+
     # | Latex Language Sever (ltex-ls-plus) |
     # +-------------------------------------+
-    # Download
-    LTEX_VERSION=$(curl -s https://api.github.com/repos/ltex-plus/ltex-ls-plus/releases/latest | jq -r '.tag_name') && \
-    echo "Latest Version: \"$LTEX_VERSION\"" && \
     LTEX_URL="https://github.com/ltex-plus/ltex-ls-plus/releases/download/${LTEX_VERSION}/ltex-ls-plus-${LTEX_VERSION}-linux-${LTEX_ARCH}.tar.gz" && \
     echo "Download URL: \"$LTEX_URL\"" && \
-    curl $CURL_OPTIONS -o ltex.tar.gz -L ${LTEX_URL} && \
+    curl $CURL_OPTIONS -o ltex.tar.gz -L "${LTEX_URL}" && \
+    # Verify checksum
+    echo "${LTEX_SHA256}  ltex.tar.gz" | sha256sum -c --status || { \
+        echo "ltex-ls-plus checksum verification FAILED"; \
+        ls -l ltex.tar.gz; \
+        exit 1; \
+    } && \
     # Extract to /opt/ltex
     tar -xzf ltex.tar.gz && \
-    mv -v ltex-ls-plus-${LTEX_VERSION} /opt/ltex && \
+    mv -v "ltex-ls-plus-${LTEX_VERSION}" /opt/ltex && \
     # Cleanup
     rm -vf ltex.tar.gz && \
     # +-------------------------------------+
     # | TEX-FMT                             |
     # +-------------------------------------+
-    # Download
-    TEX_FMT_VERSION=$(curl -s https://api.github.com/repos/wgunderwood/tex-fmt/releases/latest | jq -r '.tag_name') && \
-    if [[ -z "$TEX_FMT_VERSION" || "$TEX_FMT_VERSION" == "null" ]]; then echo "Failed to fetch TEX_FMT_VERSION"; exit 1; fi && \
-    echo "Latest Version: \"$TEX_FMT_VERSION\"" && \
-    TEX_FMT_URL="https://github.com/wgunderwood/tex-fmt/releases/download/${TEX_FMT_VERSION}/tex-fmt-${TEX_FMT_ARCH}-linux.tar.gz" && \
-    curl $CURL_OPTIONS -o tex-fmt.tar.gz -L ${TEX_FMT_URL} && \
+    TEX_FMT_URL="https://github.com/wgunderwood/tex-fmt/releases/download/v${TEX_FMT_VERSION}/tex-fmt-${TEX_FMT_ARCH}-linux.tar.gz" && \
+    curl $CURL_OPTIONS -o tex-fmt.tar.gz -L "${TEX_FMT_URL}" && \
+    # Verify checksum
+    echo "${TEX_FMT_SHA256}  tex-fmt.tar.gz" | sha256sum -c --status || { \
+        echo "tex-fmt checksum verification FAILED"; \
+        ls -l tex-fmt.tar.gz; \
+        exit 1; \
+    } && \
     # Extract
     tar -xzvf tex-fmt.tar.gz && \
     mv -v tex-fmt /usr/local/bin && \
@@ -156,11 +177,10 @@ RUN echo "Add sudo support for non-root user" && \
 #                                                 Y8b d88P
 #                                                  "Y88P"
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    DEBCONF_NOWARNINGS="yes" \
-    CURL_OPTIONS="--silent --show-error --retry 5 --location"
-
+# Note: apt/dpkg settings are exported inside the RUN steps that need them,
+# so that they do not end up in the environment of the final image.
 RUN echo "Packages" && \
+    export DEBIAN_FRONTEND=noninteractive DEBCONF_NOWARNINGS="yes" && \
     apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     # sudo
@@ -168,7 +188,7 @@ RUN echo "Packages" && \
     make \
     git git-lfs \
     jq \
-    grep ripgrep \
+    ripgrep \
     zip unzip xz-utils xzdec \
     wget curl aria2 \
     # hunspell
@@ -186,8 +206,6 @@ RUN echo "Packages" && \
     xmlto \
     xsltproc \
     dblatex \
-    # xml
-    xsltproc \
     # locale + timezone
     locales \
     tzdata \
@@ -275,25 +293,54 @@ COPY --from=builder /usr/local/bin/tex-fmt /usr/local/bin/tex-fmt
 
 ENV TERM=xterm-256color
 
+# Oh My Zsh and its plugins come from pinned commits.
+ARG OH_MY_ZSH_COMMIT=4d4cfc287e9d887b81242c0e431b5f49f9cec5c1
+ARG OH_MY_ZSH_SHA256=d3af1bf5f3c59e84f1f3051d3a994b557b8ffd3cbdf64b2811ac532c38f6b5ee
+ARG ZSH_AUTOSUGGESTIONS_COMMIT=85919cd1ffa7d2d5412f6d3fe437ebdbeeec4fc5
+ARG ZSH_AUTOSUGGESTIONS_SHA256=20665e469e720e674964a66854d5534b9af78cdfd438512746ecd1ade8e819ce
+ARG ZSH_COMPLETIONS_COMMIT=b5e8e0a22deb05a807bb8655aef809a29f3cffed
+ARG ZSH_COMPLETIONS_SHA256=2a7a140e2698f39fb215a0ea86694c8c59ad51c97133cf3f2709c46dfe28bf34
+ARG ZSH_HISTORY_SUBSTRING_SEARCH_COMMIT=a0bdb0d47dbaba31dba2db7af8c48a5d9c74049a
+ARG ZSH_HISTORY_SUBSTRING_SEARCH_SHA256=b9edc11a4a04d2a5cc23bb7bafd8f02935240a45efe8a2fa61605b7636ecb22f
+
 # Setup zsh for the root user
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN echo "ZSH" && \
     # Install zsh and the fonts required by the powerline prompt
+    export DEBIAN_FRONTEND=noninteractive DEBCONF_NOWARNINGS="yes" && \
     apt-get update && apt-get install --no-install-recommends --assume-yes \
     zsh fontconfig fonts-powerline && \
+    # Install a zsh plugin from a pinned commit, verifying its checksum
+    install_zsh_plugin() { \
+      name="$1"; commit="$2"; checksum="$3"; \
+      curl -fsSL --retry 5 -o plugin.tar.gz -L "https://github.com/zsh-users/${name}/archive/${commit}.tar.gz" && \
+      echo "${checksum}  plugin.tar.gz" | sha256sum -c --status || { \
+        echo "${name} checksum verification FAILED"; exit 1; \
+      } && \
+      mkdir -p "/root/.oh-my-zsh/custom/plugins/${name}" && \
+      tar -xzf plugin.tar.gz -C "/root/.oh-my-zsh/custom/plugins/${name}" --strip-components=1 && \
+      rm -f plugin.tar.gz; \
+    } && \
     # Install Oh My Zsh
-    curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh && \
+    curl -fsSL --retry 5 -o omz.tar.gz -L "https://github.com/ohmyzsh/ohmyzsh/archive/${OH_MY_ZSH_COMMIT}.tar.gz" && \
+    echo "${OH_MY_ZSH_SHA256}  omz.tar.gz" | sha256sum -c --status || { \
+      echo "oh-my-zsh checksum verification FAILED"; exit 1; \
+    } && \
+    tar -xzf omz.tar.gz && \
+    mv "ohmyzsh-${OH_MY_ZSH_COMMIT}" /root/.oh-my-zsh && \
+    rm -f omz.tar.gz && \
+    cp /root/.oh-my-zsh/templates/zshrc.zsh-template /root/.zshrc && \
 	# Add Zsh plugins
-    git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions && \
-    git clone --depth=1 https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-completions && \
-    git clone --depth=1 https://github.com/zsh-users/zsh-history-substring-search ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-history-substring-search && \
+    install_zsh_plugin zsh-autosuggestions "${ZSH_AUTOSUGGESTIONS_COMMIT}" "${ZSH_AUTOSUGGESTIONS_SHA256}" && \
+    install_zsh_plugin zsh-completions "${ZSH_COMPLETIONS_COMMIT}" "${ZSH_COMPLETIONS_SHA256}" && \
+    install_zsh_plugin zsh-history-substring-search "${ZSH_HISTORY_SUBSTRING_SEARCH_COMMIT}" "${ZSH_HISTORY_SUBSTRING_SEARCH_SHA256}" && \
     # Update .zshrc
     sed -i \
       -e 's/^plugins=(git.*)/plugins=(git zsh-completions zsh-autosuggestions zsh-history-substring-search)/' \
       -e 's/^ZSH_THEME="[^"]*"/ZSH_THEME="robbyrussell"/' \
-      -e 's/^# *DISABLE_UPDATE_PROMPT="true"/DISABLE_UPDATE_PROMPT="true"/' \
-      -e 's/^# *DISABLE_AUTO_UPDATE="true"/DISABLE_AUTO_UPDATE="true"/' \
     /root/.zshrc && \
+    # Disable the update check, which prompts on every new shell
+    echo "zstyle ':omz:update' mode disabled" >> /root/.zshrc && \
 	# Cleanup
 	apt-get autoremove -y && \
     apt-get clean autoclean && \
@@ -330,6 +377,7 @@ WORKDIR /workspace
 ENV TZ=Europe/Berlin
 
 RUN echo "Locale & Timezone" && \
+    export DEBIAN_FRONTEND=noninteractive DEBCONF_NOWARNINGS="yes" && \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
     dpkg-reconfigure -f noninteractive tzdata && \
