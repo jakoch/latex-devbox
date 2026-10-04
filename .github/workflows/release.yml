@@ -145,9 +145,12 @@ jobs:
           # Without this, every run rebuilds the whole TeX Live tree (~45 min).
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Attest an SBOM and build provenance next to the image in the registry.
-          sbom: true
+          # Attest build provenance next to the image in the registry.
           provenance: mode=max
+          # No build-time SBOM: BuildKit caps attestation manifests at 80 MiB
+          # and the SPDX document for the full TeX Live tree exceeds that.
+          # Trivy below scans the published image instead.
+          sbom: false
 
       - name: 🐳 Inspect the published image manifests
         if: github.event_name != 'pull_request'
